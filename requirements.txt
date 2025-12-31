@@ -1,0 +1,9 @@
+# Stellar Pi Coin SDK - Python Dependencies for CLI Tools
+# Hyper-Tech Features: AI (scikit-learn), Quantum Crypto (cryptography), Async (aiohttp), Pi Math (numpy)
+
+click==8.1.7          # CLI framework for commands
+cryptography==42.0.0  # Quantum-resistant crypto (RSA, Fernet)
+scikit-learn==1.3.0   # AI/ML for anomaly detection, pricing, routing
+numpy==1.26.0         # Pi math computations and arrays
+aiohttp==3.9.0        # Async HTTP for simulations and oracles
+pytest==7.4.0         # Testing framework for CLI and examples
