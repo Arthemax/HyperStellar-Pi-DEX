@@ -1,5 +1,9 @@
 # Stellar Pi Coin SDK
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://www.rust-lang.org/)
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
+
 **Ultimate Hyper-Tech SDK for Pi Coin Stablecoin on Stellar Blockchain**
 
 The Stellar Pi Coin SDK is a cutting-edge toolkit for deploying and managing Pi Coin – a stablecoin with fixed value 1 PI = $314,159 – on the Stellar network using Soroban smart contracts. Inspired by Pi Network, it features AI-verified origins, quantum-resistant cryptography, Pi-math integrated hashing, and real-time ecosystem simulations. Rejecting external sources, Pi Coin powers secure, stable transactions within a Pi-inspired framework.
