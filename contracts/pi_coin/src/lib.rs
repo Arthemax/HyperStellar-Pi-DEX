@@ -277,4 +277,4 @@ fn pi_based_hash(data: &str, pi_digits: &str) -> [u8; 64] {
     let mut hasher = Sha3_512::new();
     hasher.update(combined.as_bytes());
     hasher.finalize().into()
-                                                                  }
+}                                                                  }
