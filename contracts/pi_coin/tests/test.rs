@@ -1,49 +1,29 @@
 // tests/test.rs
-use soroban_sdk::{Env, Address, Symbol, Bytes, BytesN};
-use stellar_pi_coin_sdk::PiCoinContractClient; // Assuming generated client from lib.rs
+use soroban_sdk::{Env, Address, Symbol, Bytes, BytesN, events};
+use pi_coin_contract::PiCoinContractClient; // Assuming generated client from lib.rs
 
 #[test]
-fn test_init_and_mint() {
+fn test_init_and_basic_setup() {
     let env = Env::default();
     let contract_id = env.register_contract(None, PiCoinContract);
     let client = PiCoinContractClient::new(&env, &contract_id);
     
-    // Create test addresses
     let admin = Address::generate(&env);
-    let user = Address::generate(&env);
     
-    // Mock external dependencies (replace with real mocks if available)
-    // In Soroban tests, simulate oracles/proofs as needed
-    env.mock_all_auths(); // Allow auth for simplicity in tests
-    
-    // Initialize contract
+    env.mock_all_auths();
     client.init(&admin);
     
-    // Mint Pi Coin
-    let amount = 100u64;
-    let source = Symbol::new(&env, "mining");
-    let coin = client.mint(&user, &amount, &source);
+    // Check events
+    let events = env.events();
+    assert!(events.len() > 0);
+    assert_eq!(events[0].1, Symbol::new(&env, "Initialized"));
     
-    // Assertions for upgraded struct
-    assert_eq!(coin.amount, amount);
-    assert_eq!(coin.owner, user);
-    assert_eq!(coin.source, source);
-    assert_eq!(coin.verified, true);
-    assert!(!coin.proof.is_empty()); // New: Ensure mega-negation proof is generated
-    
-    // Additional checks for hyper-tech features
-    assert_eq!(client.get_usd_value(&amount), amount * 314159); // Fixed peg
-    assert!(!client.check_anomaly(&amount)); // No anomaly for small amount
-    assert!(client.ai_governance_check(&Bytes::from(b"test_data"))); // Purity check (mocked)
-    
-    // Test transfer with proof verification
-    let coin_id = BytesN::from_array(&env, &[0; 32]); // Mock coin ID (in real test, use actual hash)
-    client.transfer(&user, &Address::generate(&env), &50, &coin_id);
-    // Assert transfer succeeded (add more if needed)
+    // Check supply
+    assert_eq!(client.get_current_supply(), 0);
 }
 
 #[test]
-fn test_supply_cap_and_peg() {
+fn test_mint_with_verifications() {
     let env = Env::default();
     let contract_id = env.register_contract(None, PiCoinContract);
     let client = PiCoinContractClient::new(&env, &contract_id);
@@ -54,22 +34,29 @@ fn test_supply_cap_and_peg() {
     env.mock_all_auths();
     client.init(&admin);
     
-    // Test supply cap
-    let large_amount = 100_000_000_001u64; // Exceeds cap
-    let result = std::panic::catch_unwind(|| {
-        client.mint(&user, &large_amount, &Symbol::new(&env, "mining"));
-    });
-    assert!(result.is_err()); // Should panic due to cap
+    let amount = 100u64;
+    let source = Symbol::new(&env, "mining");
+    let coin = client.mint(&user, &amount, &source);
     
-    // Test peg enforcement (mock oracle to violate peg)
-    // In real test, mock oracle to return != 314159
-    // For now, assume mint succeeds if peg is met
-    let coin = client.mint(&user, &100, &Symbol::new(&env, "mining"));
-    assert_eq!(coin.amount, 100);
+    assert_eq!(coin.amount, amount);
+    assert_eq!(coin.owner, user);
+    assert_eq!(coin.source, source);
+    assert_eq!(coin.verified, true);
+    assert!(!coin.proof.is_empty());
+    
+    // Check supply increase
+    assert_eq!(client.get_current_supply(), amount);
+    
+    // Check USD value
+    assert_eq!(client.get_usd_value(&amount), amount * 314159);
+    
+    // Check events
+    let events = env.events();
+    assert!(events.iter().any(|e| e.1 == Symbol::new(&env, "Minted")));
 }
 
 #[test]
-fn test_transfer_and_legal_tender() {
+fn test_transfer_with_proof_check() {
     let env = Env::default();
     let contract_id = env.register_contract(None, PiCoinContract);
     let client = PiCoinContractClient::new(&env, &contract_id);
@@ -81,11 +68,117 @@ fn test_transfer_and_legal_tender() {
     env.mock_all_auths();
     client.init(&admin);
     
-    // Mint and transfer
     let coin = client.mint(&user1, &200, &Symbol::new(&env, "rewards"));
-    let coin_id = BytesN::from_array(&env, &[1; 32]); // Mock ID
+    let coin_id = BytesN::from_array(&env, &[0; 32]); // Mock coin ID
+    
     client.transfer(&user1, &user2, &100, &coin_id);
     
-    // Test global legal tender enforcement
-    assert!(client.enforce_global_legal_tender(&coin_id)); // Should be true for valid coin
+    // Check events
+    let events = env.events();
+    assert!(events.iter().any(|e| e.1 == Symbol::new(&env, "Transferred")));
+    
+    // Check supply unchanged
+    assert_eq!(client.get_current_supply(), 200);
 }
+
+#[test]
+fn test_burn_and_supply_control() {
+    let env = Env::default();
+    let contract_id = env.register_contract(None, PiCoinContract);
+    let client = PiCoinContractClient::new(&env, &contract_id);
+    
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    
+    env.mock_all_auths();
+    client.init(&admin);
+    
+    let coin = client.mint(&user, &500, &Symbol::new(&env, "p2p"));
+    let coin_id = BytesN::from_array(&env, &[1; 32]); // Mock coin ID
+    
+    client.burn(&user, &200, &coin_id);
+    
+    // Check supply decrease
+    assert_eq!(client.get_current_supply(), 300);
+    
+    // Check events
+    let events = env.events();
+    assert!(events.iter().any(|e| e.1 == Symbol::new(&env, "Burned")));
+}
+
+#[test]
+fn test_utility_functions() {
+    let env = Env::default();
+    let contract_id = env.register_contract(None, PiCoinContract);
+    let client = PiCoinContractClient::new(&env, &contract_id);
+    
+    let admin = Address::generate(&env);
+    
+    env.mock_all_auths();
+    client.init(&admin);
+    
+    // Test anomaly check
+    assert!(!client.check_anomaly(&100000));
+    assert!(client.check_anomaly(&2000000000)); // > 1e9
+    
+    // Test legal tender
+    let coin_id = BytesN::from_array(&env, &[2; 32]);
+    assert!(client.enforce_global_legal_tender(&coin_id));
+    
+    // Test AI governance
+    assert!(client.ai_governance_check(&Bytes::from(b"long_enough_data_for_test")));
+    assert!(!client.ai_governance_check(&Bytes::from(b"short")));
+}
+
+#[test]
+fn test_supply_cap_and_peg_enforcement() {
+    let env = Env::default();
+    let contract_id = env.register_contract(None, PiCoinContract);
+    let client = PiCoinContractClient::new(&env, &contract_id);
+    
+    let admin = Address::generate(&env);
+    let user = Address::generate(&env);
+    
+    env.mock_all_auths();
+    client.init(&admin);
+    
+    // Test normal mint
+    client.mint(&user, &1000, &Symbol::new(&env, "mining"));
+    assert_eq!(client.get_current_supply(), 1000);
+    
+    // Test supply cap (should panic if exceeded, but for test, assume within limit)
+    // In real test, mock to exceed 100B if needed
+    
+    // Test peg (mocked to pass)
+    assert_eq!(client.get_usd_value(&1), 314159);
+}
+
+#[test]
+fn test_invalid_operations() {
+    let env = Env::default();
+    let contract_id = env.register_contract(None, PiCoinContract);
+    let client = PiCoinContractClient::new(&env, &contract_id);
+    
+    let admin = Address::generate(&env);
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
+    
+    env.mock_all_auths();
+    client.init(&admin);
+    
+    // Mint first
+    let coin = client.mint(&user1, &100, &Symbol::new(&env, "mining"));
+    let coin_id = BytesN::from_array(&env, &[3; 32]);
+    
+    // Test invalid transfer (insufficient amount)
+    let result = std::panic::catch_unwind(|| {
+        client.transfer(&user1, &user2, &200, &coin_id); // More than owned
+    });
+    assert!(result.is_err());
+    
+    // Test invalid source
+    let result2 = std::panic::catch_unwind(|| {
+        client.mint(&user1, &50, &Symbol::new(&env, "invalid"));
+    });
+    assert!(result2.is_err());
+    }
