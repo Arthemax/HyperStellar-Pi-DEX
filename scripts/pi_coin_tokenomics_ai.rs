@@ -1,6 +1,6 @@
 #![no_std]
+
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, Symbol, Vec, Map, log, crypto, Bytes, BytesN};
-use rand::Rng; // For AI simulation
 
 #[contracttype]
 #[derive(Clone)]
@@ -68,7 +68,9 @@ impl PiCoinTokenomicsAI {
     // AI analyze global demand (hyper-tech prediction)
     fn ai_analyze_global_demand(env: &Env) -> Result<i128, ()> {
         // Simulate AI ML analysis of market trends, transactions, and adoption
-        let score = rand::thread_rng().gen_range(60..100); // Dynamic simulation
+        // Note: In a real blockchain environment, randomness should be deterministic or based on ledger state.
+        // For simulation, using a fixed value to avoid non-deterministic behavior.
+        let score = 80; // Fixed simulation value for determinism
         Ok(score)
     }
 
@@ -120,16 +122,5 @@ impl PiCoinTokenomicsAI {
     }
 }
 
-// Main function for autonomous execution
-fn main() {
-    let env = Env::default();
-    let admin_address = Address::from_str(&env, "your-stellar-admin-address"); // Replace with actual STELLAR_ADMIN_ADDRESS
-    PiCoinTokenomicsAI::initialize(env.clone(), admin_address).unwrap();
-    
-    loop {
-        if let Err(_) = PiCoinTokenomicsAI::manage_tokenomics(env.clone(), admin_address) {
-            println!("Tokenomics AI error - Autonomous recovery initiated");
-        }
-        std::thread::sleep(std::time::Duration::from_secs(86400)); // Run daily for ultimate management
-    }
-}
+// Removed main function as Soroban smart contracts do not have a main entry point.
+// Smart contracts are invoked via the Soroban environment, not through a standalone executable.
