@@ -1,0 +1,13 @@
+.dashboard {
+  transition: background-color 2s ease-in-out; /* Quantum transition */
+}
+.alert {
+  color: red;
+  font-weight: bold;
+  animation: blink 1s infinite;
+}
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
